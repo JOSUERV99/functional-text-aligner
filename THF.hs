@@ -12,13 +12,15 @@ get (HypWord w) = w ++ "-"
 
 --	(a)	Defina una función que convierta una tira de entrada en una Line. 
 --  Puede asumir que la entrada no contiene palabras separadas.
---  string2line text ⇒ [Word "Aquel",Word "que",Word "controla", ...]
+--  string2line text 
+--  ⇒ [Word "Aquel",Word "que",Word "controla", ...]
 string2line :: String -> Line
 string2line text = map (\wrd-> Word wrd) $ words text
 
 --  (b)	Defina una función que convierta de vuelta un Line en una tira. 
 --  Se supone que hay un espacio en blanco luego de cada palabra menos la última
---  line2string [Word "Aquel",Word "que"] ⇒ "Aquel que"
+--  line2string [Word "Aquel",Word "que"] 
+--  ⇒ "Aquel que"
 line2string :: Line -> String
 line2string line = unwords $ map (\tkn-> get tkn) line
 
@@ -86,27 +88,28 @@ mergers (str:strList) = [(str, concat strList)] ++ mergers (concat [[str++(head 
 
 type HypMap = Data.Map.Map String [String]
 hyphenate :: HypMap -> Token -> [(Token,Token)]
-hyphenate wrdMap tkn = 
- if ( member (get tkn) wrdMap ) then ( map (\(x, y)->( (HypWord x), (Word y))) (mergers (wrdMap ! (get tkn))) ) else []
+hyphenate wrdMap tkn = if ( member wrdWithoutPoints wrdMap ) then ( map (\(x, y)->( (HypWord x), (Word (y ++ points)))) (mergers wrdParts) ) else [] 
+ where
+  wrdParts = wrdMap ! wrdWithoutPoints
+  points = dropWhile (\ch->ch /= '.') (get tkn)
+  wrdWithoutPoints = takeWhile (\ch->ch /= '.') (get tkn)
 
 --  (h)	Definir ahora una función que encuentre las diferentes formas en que se puede separar 
 --  una línea usando las diferentes formas en que la última palabra de la línea se pueda separar. 
 --  Adicionalmente, la línea separada al inicio no puede sobrepasar una longitud dada.
 
 -- lineBreaks :: HypMap -> Int -> Line -> [(Line,Line)]
--- lineBreaks enHyp 17 [Word "Aquel",Word "que",Word "controla"]
+-- lineBreaks enHyp 17 [Word "Aquel",Word "que", Word "controla"]
 --     ⇒ [([Word "Aquel",Word "que"], [Word "controla"]),
 --        ([Word "Aquel",Word "que",HypWord "con"], [Word "trola"]),
 --        ([Word "Aquel",Word "que",HypWord "contro"], [Word "la"])]
--- lineBreaks enHyp 12 [Word "Aquel"] 
+-- lineBreaks enHyp 12 [Word "Aquel"]
 --     ⇒ [([Word "Aquel"],[])]
 enHyp :: HypMap
-enHyp = Data.Map.fromList [("controla",["con","tro","la"]), ("futuro",["fu","tu","ro"]),("presente",["pre","sen","te"])]
+enHyp = Data.Map.fromList [("controla",["con","tro","la"]), ("futuro",["fu","tu","ro"]),("presente",["pre","sen","te"]), ("futuro", ["fu", "tu", "ro"])]
 
 lineBreaks :: HypMap -> Int -> Line -> [(Line,Line)]
-lineBreaks wrdMap len line = 
- if (lineLength line) < len then [breakLine len line] else []
-
+lineBreaks wrdMap len line = if (lineLength line) < len then [breakLine len line] else []
 
 -- (i)	Definir una función insertBlanks que distribuya un número dado de espacios en blanco 
 -- entre las palabras. La distribución se hará colocando un Blank en posiciones consecutivas
@@ -124,7 +127,6 @@ lineBreaks wrdMap len line =
 --     ⇒ [Word "hola", Blank,Blank,Blank, Word "mundo", Blank,Blank,Word "cruel"]
 -- insertBlanks 5 [Word "hola", Word "mundo", Word "cruel", Word "adios"]
 --     ⇒ [Word "hola",Blank,Blank, Word "mundo", Blank,Blank, Word "cruel", Blank, Word "adios"]
-
 insertBlanks :: Int -> [Token] -> [Token]
 insertBlanks _ [] = []
 insertBlanks _ [wrd] = [wrd]
