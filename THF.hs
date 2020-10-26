@@ -51,7 +51,7 @@ lineBreaks :: HypMap -> Int -> Line -> [(Line, Line)]
 lineBreaks wrdMap len line = if (lineLength line) < len then [breakLine len line] else map (\ele->(breakLine len ele)) resultList
  where
   finalWrdSet = hyphenate wrdMap (last line)
-  resultList = line : (map (\w->(init line)++([fst w,snd w])) finalWrdSet)
+  resultList = line : (map (\(wrdStart, wrdEnd)->(init line)++([wrdStart,wrdEnd])) finalWrdSet)
 
 insertBlanks :: Int -> [Token] -> [Token]
 insertBlanks _ [] = []
@@ -77,4 +77,24 @@ insertBlanks spaces (w:wrds) = [w] ++ (take requiredSpaces (repeat Blank)) ++ in
 	entonces se insertan espacios en blanco en las líneas.
  --}
 
--- TODO: go ahead!
+-- Separacion de palabras
+data SPFlag = SEPARAR | NOSEPARAR
+-- Ajuste de lineas
+data ALFLAG = AJUSTAR | NOAJUSTAR
+
+--------------------------------------------------------------------------------------
+separarYalinear maxLineLength NOSEPARAR NOAJUSTAR text = if (lineLength (snd currentLineSet)) > maxLineLength then [line2string (fst currentLineSet)] ++ nextLine else [line2string (snd currentLineSet)]
+ where
+  currentLineSet = breakLine maxLineLength (string2line text)
+  nextLine = separarYalinear maxLineLength NOSEPARAR NOAJUSTAR (line2string (snd currentLineSet))
+
+--------------------------------------------------------------------------------------
+separarYalinear maxLineLength SEPARAR   AJUSTAR   text = []
+
+--------------------------------------------------------------------------------------
+separarYalinear maxLineLength SEPARAR NOAJUSTAR text = []
+
+--------------------------------------------------------------------------------------
+separarYalinear maxLineLength NOSEPARAR AJUSTAR   text = []
+
+--------------------------------------------------------------------------------------
