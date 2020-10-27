@@ -3,7 +3,6 @@
 	@author: JosueRV99
 --}
 import Data.Map (Map, member, (!), fromList)
-import Data.List (find)
 
 enHyp :: HypMap
 enHyp = Data.Map.fromList [("controla",["con","tro","la"]), ("futuro",["fu","tu","ro"]),("presente",["pre","sen","te"]), ("futuro", ["fu", "tu", "ro"])]
@@ -72,6 +71,12 @@ divideTextByLines (firstPart, secondPart) maxLength =
  if (lineLength secondPart) <= maxLength then [firstPart, secondPart] else [firstPart] ++ divideTextByLines (breakLine maxLength secondPart) maxLength
 
 divideTextByLinesWithSeparation :: [(Line, Line)] -> Int -> [Line]
+divideTextByLinesWithSeparation (set:lineOptions) maxLength = 
+ if (lineLength secondPart) <= maxLength then [firstPart, secondPart] else [firstPart] ++ divideTextByLinesWithSeparation (lineBreaks enHyp maxLength secondPart) maxLength
+ where
+  selectOneFunc x y = if lineLength (fst y) <= maxLength && lineLength (fst y) <= lineLength (fst x) then x else y
+  selectedLine lineSet = foldr selectOneFunc (head lineSet) (tail lineSet)
+  (firstPart, secondPart) = selectedLine [set]
 
 separarYalinear :: Int -> SPFlag -> ALFlag -> String -> [String]
 --------------------------------------------------------------------------------
