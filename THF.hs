@@ -3,6 +3,7 @@
 	@author: JosueRV99
 --}
 import Data.Map (Map, member, (!), fromList)
+import Data.List (find)
 
 enHyp :: HypMap
 enHyp = Data.Map.fromList [("controla",["con","tro","la"]), ("futuro",["fu","tu","ro"]),("presente",["pre","sen","te"]), ("futuro", ["fu", "tu", "ro"])]
@@ -65,24 +66,29 @@ insertBlanks _ [wrd] = [wrd]
 insertBlanks spaces (w:wrds) = [w] ++ (take requiredSpaces (repeat Blank)) ++ insertBlanks (spaces - requiredSpaces) wrds
  where requiredSpaces = ceiling $ (fromIntegral spaces) / (fromIntegral (length wrds))
 
+-- utils
+divideTextByLines :: (Line, Line) -> Int -> [Line]
+divideTextByLines (firstPart, secondPart) maxLength = 
+ if (lineLength secondPart) <= maxLength then [firstPart, secondPart] else [firstPart] ++ divideTextByLines (breakLine maxLength secondPart) maxLength
+
+divideTextByLinesWithSeparation :: [(Line, Line)] -> Int -> [Line]
+
 separarYalinear :: Int -> SPFlag -> ALFlag -> String -> [String]
----------------------------------------------------------------------------------------------
-separarYalinear maxLength NOSEPARAR NOAJUSTAR text = 
- if (lineLength (snd currentLineSet)) > maxLength then [noAdjust (fst currentLineSet)] ++ nextLine else [noAdjust (fst currentLineSet)] ++ [noAdjust (snd currentLineSet)]
+--------------------------------------------------------------------------------
+separarYalinear maxLength NOSEPARAR NOAJUSTAR text = map line2string lineSet
  where
-  noAdjust line = line2string line
-  currentLineSet = breakLine maxLength (string2line text)
-  nextLine = separarYalinear maxLength NOSEPARAR NOAJUSTAR (line2string (snd currentLineSet))
----------------------------------------------------------------------------------------------
-separarYalinear maxLength NOSEPARAR AJUSTAR text = 
- if (lineLength (snd currentLineSet)) > maxLength then [adjustLine (fst currentLineSet)] ++ nextLine else [adjustLine (fst currentLineSet)] ++ [adjustLine (snd currentLineSet)]
+  lineSet = divideTextByLines (breakLine maxLength (string2line text)) maxLength
+--------------------------------------------------------------------------------
+separarYalinear maxLength NOSEPARAR AJUSTAR text = (map adjustFunc (tail lineSet)) ++ [line2string (last lineSet)]
  where
-  adjustLine line = line2string $ insertBlanks (maxLength - lineLength line) line
-  currentLineSet = breakLine maxLength (string2line text)
-  nextLine = separarYalinear maxLength NOSEPARAR AJUSTAR (line2string (snd currentLineSet))
----------------------------------------------------------------------------------------------
+  adjustFunc line = line2string (insertBlanks (maxLength - (lineLength line)) line)
+  lineSet = divideTextByLines (breakLine maxLength (string2line text)) maxLength
+--------------------------------------------------------------------------------
 separarYalinear maxLength SEPARAR NOAJUSTAR text = []
----------------------------------------------------------------------------------------------
+ where
+  lineSet = divideTextByLines (breakLine maxLength (string2line text)) maxLength
+
+--------------------------------------------------------------------------------
 separarYalinear maxLength SEPARAR AJUSTAR text = []
 
 
