@@ -84,7 +84,7 @@ separarYalinear maxLength NOSEPARAR NOAJUSTAR text = map line2string lineSet
  where
   lineSet = divideTextByLines (breakLine maxLength (string2line text)) maxLength
 --------------------------------------------------------------------------------
-separarYalinear maxLength NOSEPARAR AJUSTAR text = (map adjustFunc (tail lineSet)) ++ [line2string (last lineSet)]
+separarYalinear maxLength NOSEPARAR AJUSTAR text = (map adjustFunc (init lineSet)) ++ [line2string (last lineSet)]
  where
   adjustFunc line = line2string (insertBlanks (maxLength - (lineLength line)) line)
   lineSet = divideTextByLines (breakLine maxLength (string2line text)) maxLength
