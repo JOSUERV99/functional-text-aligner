@@ -1,14 +1,10 @@
 {--
 	Command Line Interface
 	 for Text Aligner Project
-	 by: JOSUERV99
+	  by: JOSUERV99
 --}
-
 import Prelude hiding (null, lookup, map, filter)
-import Data.Map.Lazy hiding (sort,map,foldl)
-import Data.Map (fromList)
-import Data.Char
-import Data.List (sort,map)
+import Data.Map (fromList, member, Map, insert)
 import System.IO
 
 type State = Map String [String]
@@ -26,19 +22,23 @@ mainloop state = do
   let newState = fromList[]
   
   case command of
+
    "load" -> do
-     --fileName <- tokens!!1
-     --inh <- openFile fileName ReadMode
-     --newState <- cargar inh state
-     --hClose inh
+     let fileName = tokens!!1
+     inh <- openFile fileName ReadMode
+     newState <- load inh state
+     hClose inh
      putStrLn $ "File " ++ " was loaded"
      mainloop newState
+
    "show" -> do
-     putStrLn "Showing..."
+     putStrLn $ show state
      mainloop state     
+
    "ins" -> do
      putStrLn "Showing..."
      mainloop newState
+
    "save" -> do
      putStrLn ">>> Filename output: "
      --fileName <- getLine
@@ -46,14 +46,33 @@ mainloop state = do
      --descargar outh (sort (toList state))
      --hClose outh
      mainloop newState
+
    "split" -> do
      putStrLn "Splitting..."
      mainloop newState
+
    "splitf" -> do
      putStrLn "Splitting to File..."
      mainloop newState
+
    "exit" -> do
-     putStrLn "Exitting..."
+     putStrLn "Bye..."
+
    _ -> do
      putStrLn $ "Unknown command ("++ command ++"): '" ++ inpStr ++ "'" 
      mainloop state
+
+record :: State -> String -> State
+record state str = 
+ if member str state then state else insert key value state 
+ where 
+  key = head (words str)
+  value = words [if c == '-' then ' ' else c|c <- (last (words str))]
+
+load :: Handle -> State -> IO State
+load inh state = do
+      ineof <- hIsEOF inh
+      if ineof then return state
+               else do inpStr <- hGetLine inh
+                       let nuevoestado = record state inpStr
+                       load inh nuevoestado
