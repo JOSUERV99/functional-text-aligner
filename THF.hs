@@ -4,10 +4,8 @@
   @since: 1/11/2020
 --}
 
+module THF where
 import Data.Map (Map, member, (!), fromList)
-
-enHyp :: HypMap
-enHyp = Data.Map.fromList [("controla",["con","tro","la"]), ("futuro",["fu","tu","ro"]),("presente",["pre","sen","te"]), ("futuro", ["fu", "tu", "ro"])]
 
 data SPFlag = SEPARAR | NOSEPARAR -- Separacion de palabras
 data ALFlag = AJUSTAR | NOAJUSTAR -- Ajuste de lineas
@@ -87,20 +85,20 @@ reduceLinesWithSeparation (current, lineSet) (tkn:tokens) maxLength wrdMap=
  else reduceLinesWithSeparation (current++[tkn], lineSet) tokens maxLength wrdMap
  where (fSep, sSep) = findLargestSeparation current tkn maxLength wrdMap
 
-separarYalinear :: Int -> SPFlag -> ALFlag -> String -> [String]
+separarYalinear :: Int -> SPFlag -> ALFlag -> String ->  HypMap -> [String]
 
-separarYalinear maxLength NOSEPARAR NOAJUSTAR text = map line2string lineSet
+separarYalinear maxLength NOSEPARAR NOAJUSTAR text wrdMap = map line2string lineSet
  where lineSet = divideTextByLines (breakLine maxLength (string2line text)) maxLength
 
-separarYalinear maxLength NOSEPARAR AJUSTAR text = (map adjustFunc (init lineSet)) ++ [line2string (last lineSet)]
+separarYalinear maxLength NOSEPARAR AJUSTAR text wrdMap = (map adjustFunc (init lineSet)) ++ [line2string (last lineSet)]
  where
   adjustFunc line = line2string (insertBlanks (maxLength - (lineLength line)) line)
   lineSet = divideTextByLines (breakLine maxLength (string2line text)) maxLength
 
-separarYalinear maxLength SEPARAR NOAJUSTAR text =  map line2string lineSet
- where lineSet = snd (reduceLinesWithSeparation ([], []) (string2line text) maxLength enHyp)
+separarYalinear maxLength SEPARAR NOAJUSTAR text wrdMap =  map line2string lineSet
+ where lineSet = snd (reduceLinesWithSeparation ([], []) (string2line text) maxLength wrdMap)
 
-separarYalinear maxLength SEPARAR AJUSTAR text = map adjustFunc (init lineSet) ++ [line2string (last lineSet)]
+separarYalinear maxLength SEPARAR AJUSTAR text wrdMap = map adjustFunc (init lineSet) ++ [line2string (last lineSet)]
  where
   adjustFunc line = line2string (insertBlanks (maxLength - (lineLength line)) line)
-  lineSet = snd (reduceLinesWithSeparation ([], []) (string2line text) maxLength enHyp)
+  lineSet = snd (reduceLinesWithSeparation ([], []) (string2line text) maxLength wrdMap)
