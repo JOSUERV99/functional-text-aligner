@@ -1,7 +1,9 @@
-{-- 
-	Text Handling Functions
+{--
+	Text Handling Functions for TextAligner 
 	@author: JosueRV99
+  @since: 1/11/2020
 --}
+
 import Data.Map (Map, member, (!), fromList)
 
 enHyp :: HypMap
@@ -11,6 +13,7 @@ data SPFlag = SEPARAR | NOSEPARAR -- Separacion de palabras
 data ALFlag = AJUSTAR | NOAJUSTAR -- Ajuste de lineas
 
 type Line = [Token]
+type HypMap = Data.Map.Map String [String]
 data Token = Word String | Blank | HypWord String
              deriving (Eq,Show)
 
@@ -23,8 +26,7 @@ string2line :: String -> Line
 string2line text = map (\wrd-> Word wrd) $ words text
 
 line2string :: Line -> String
-line2string line = unwords $ map (\tkn->if tkn/=Blank then get tkn else "") (reverse (dropWhile cleanFunc (reverse (dropWhile cleanFunc line))))
- where cleanFunc = (\x->x==Blank)
+line2string line = unwords $ map (\tkn->if tkn/=Blank then get tkn else "") (reverse (dropWhile (\x->x==Blank) (reverse (dropWhile (\x->x==Blank) line))))
 
 tokenLength :: Token -> Int
 tokenLength (Word w) = length w
@@ -46,14 +48,12 @@ mergers :: [String] -> [(String, String)]
 mergers [x] = []
 mergers (str:strList) = [(str, concat strList)] ++ mergers (concat [[str++(head strList)], tail strList])
 
-type HypMap = Data.Map.Map String [String]
 hyphenate :: HypMap -> Token -> [(Token,Token)]
 hyphenate wrdMap tkn = if ( member wrdWithoutPoints wrdMap ) 
  then ( map (\(x, y)->( (HypWord x), (Word (y ++ points)))) (mergers wrdParts) ) else [] 
  where
   wrdParts = wrdMap ! wrdWithoutPoints
-  points = dropWhile (\ch->ch /= '.') (get tkn)
-  wrdWithoutPoints = takeWhile (\ch->ch /= '.') (get tkn)
+  (wrdWithoutPoints, points) = (takeWhile (\ch->ch /= '.') (get tkn), dropWhile (\ch->ch /= '.') (get tkn))
 
 lineBreaks :: HypMap -> Int -> Line -> [(Line, Line)]
 lineBreaks wrdMap len line = if (lineLength line) <= len then [breakLine len line] else map (\l->(breakLine len l)) lines
@@ -64,7 +64,7 @@ lineBreaks wrdMap len line = if (lineLength line) <= len then [breakLine len lin
 insertBlanks :: Int -> [Token] -> [Token]
 insertBlanks _ [] = []
 insertBlanks _ [wrd] = [wrd]
-insertBlanks spaces (w:wrds) = [w] ++ (take requiredSpaces (repeat Blank)) ++ insertBlanks (spaces - requiredSpaces) wrds
+insertBlanks spaces (w:wrds) = w:(replicate requiredSpaces Blank) ++ insertBlanks (spaces - requiredSpaces) wrds
  where requiredSpaces = ceiling $ (fromIntegral spaces) / (fromIntegral (length wrds))
 
 divideTextByLines :: (Line, Line) -> Int -> [Line]
@@ -79,33 +79,28 @@ findLargestSeparation currentLine tkn maxLength wrdMap = if (member wrdWithoutPo
   wrdWithoutPoints = takeWhile (\ch->ch /= '.') (get tkn)
   optionsSet = lineBreaks wrdMap maxLength (currentLine++[tkn])
 
-reduceLinesWithSeparation :: (Line, [Line]) -> Line -> Int -> (Line, [Line])
-reduceLinesWithSeparation (current, lineSet) [] maxLength= ([], lineSet++[current]) 
-reduceLinesWithSeparation (current, lineSet) (tkn:tokens) maxLength = 
- if lineLength (current++[tkn]) > maxLength 
- then ( if separation == ([], []) then reduceLinesWithSeparation ([tkn], lineSet++[current]) tokens maxLength else reduceLinesWithSeparation (snd separation, lineSet++([fst separation])) tokens maxLength)
- else reduceLinesWithSeparation (current++[tkn], lineSet) tokens maxLength
- where separation = findLargestSeparation current tkn maxLength enHyp
+reduceLinesWithSeparation :: (Line, [Line]) -> Line -> Int -> HypMap -> (Line, [Line])
+reduceLinesWithSeparation (current, lineSet) [] maxLength wrdMap= ([], lineSet++[current]) 
+reduceLinesWithSeparation (current, lineSet) (tkn:tokens) maxLength wrdMap= 
+ if lineLength (current++[tkn]) > maxLength
+ then reduceLinesWithSeparation (sSep, lineSet++[fSep]) tokens maxLength wrdMap
+ else reduceLinesWithSeparation (current++[tkn], lineSet) tokens maxLength wrdMap
+ where (fSep, sSep) = findLargestSeparation current tkn maxLength wrdMap
 
 separarYalinear :: Int -> SPFlag -> ALFlag -> String -> [String]
-------------------------------------------------------------------------------------------------------------------------------------
+
 separarYalinear maxLength NOSEPARAR NOAJUSTAR text = map line2string lineSet
  where lineSet = divideTextByLines (breakLine maxLength (string2line text)) maxLength
-------------------------------------------------------------------------------------------------------------------------------------
+
 separarYalinear maxLength NOSEPARAR AJUSTAR text = (map adjustFunc (init lineSet)) ++ [line2string (last lineSet)]
  where
   adjustFunc line = line2string (insertBlanks (maxLength - (lineLength line)) line)
   lineSet = divideTextByLines (breakLine maxLength (string2line text)) maxLength
-------------------------------------------------------------------------------------------------------------------------------------
+
 separarYalinear maxLength SEPARAR NOAJUSTAR text =  map line2string lineSet
- where lineSet = snd (reduceLinesWithSeparation ([], []) (string2line text) maxLength)
-------------------------------------------------------------------------------------------------------------------------------------
+ where lineSet = snd (reduceLinesWithSeparation ([], []) (string2line text) maxLength enHyp)
+
 separarYalinear maxLength SEPARAR AJUSTAR text = map adjustFunc (init lineSet) ++ [line2string (last lineSet)]
  where
   adjustFunc line = line2string (insertBlanks (maxLength - (lineLength line)) line)
-  lineSet = snd (reduceLinesWithSeparation ([], []) (string2line text) maxLength)
-------------------------------------------------------------------------------------------------------------------------------------
-
-
-
-
+  lineSet = snd (reduceLinesWithSeparation ([], []) (string2line text) maxLength enHyp)
