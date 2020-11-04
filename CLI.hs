@@ -8,6 +8,7 @@ import Prelude hiding (null, lookup, filter)
 import Data.Map (fromList, member, Map, insert, toList, size)
 import Data.Char (toLower)
 import Data.List (sort, intercalate)
+import Data.Typeable
 import System.IO
 
 type State = Map String [String]
@@ -29,6 +30,7 @@ mainloop state = do
   case command of
 
    "load" -> do 
+   -- load filename 
      let filename = tokens!!1
      inh <- openFile filename ReadMode
      newState <- loadDict inh $ fromList[]
@@ -41,6 +43,7 @@ mainloop state = do
      mainloop state    
 
    "ins" -> do
+   -- ins word di-vi-ded-word
      let word = tokens!!1
      let separations = words [if c == '-' then ' ' else c|c <- tokens!!2]
      let newState = record state word separations
@@ -48,6 +51,7 @@ mainloop state = do
      mainloop newState 
 
    "save" -> do 
+   -- save filename 
      let outFilename = tokens!!1
      outh <- openFile outFilename WriteMode
      saveDict outh $ sort (toList state)
@@ -56,15 +60,13 @@ mainloop state = do
      mainloop state
 
    "split" -> do 
+   -- split length separar? ajustar? text....
      putStrLn $ "\n"++(processText tokens state) ++ "\n"
      mainloop state 
 
    "splitf" -> do 
-     let inFilename  = tokens!!4
-         outFilename = tokens!!5
-     outh <- openFile outFilename WriteMode
-     inh  <- openFile inFilename ReadMode
-     processTextUsingFiles outh inh tokens state
+    -- splitf length separar? ajustar? inFilename outFilename
+     processTextUsingFiles tokens state
      mainloop state 
 
    "exit" -> do 
@@ -106,35 +108,35 @@ processText tokens state = do
      separationFlag   = if (map toLower (tokens!!2)) == "s" then SEPARAR else NOSEPARAR
      adjustmentFlag   = if (map toLower (tokens!!3)) == "s" then AJUSTAR else NOAJUSTAR
      textToAlign      = unwords $ drop 4 tokens
-     splittedText     = intercalate "\n" $ separarYalinear maxLengthPerLine separationFlag adjustmentFlag textToAlign state
- splittedText
-
-{-- load text from file --}
-readTextFromFile :: Handle -> String -> IO String
-readTextFromFile inh text = do
-      ineof <- hIsEOF inh
-      if ineof then return text
-               else do 
-                inpStr <- hGetLine inh
-                let newText = text ++ inpStr
-                readTextFromFile inh newText
+     alignedText      = intercalate "\n" $ separarYalinear maxLengthPerLine separationFlag adjustmentFlag textToAlign state
+ alignedText
 
 {-- save dict of (word-separation) from the state --}
 saveTextToFile :: Handle -> [String] -> IO ()
 saveTextToFile outh [] = return ()
 saveTextToFile outh (l:lines) = do 
- hPutStrLn outh $ l++"\n"
+ hPutStrLn outh l
  saveTextToFile outh lines
 
 {-- process text and save in a file --}
-processTextUsingFiles :: Handle -> Handle -> [String] -> State -> IO ()
-processTextUsingFiles outh inh tokens state = do
+processTextUsingFiles :: [String] -> State -> IO ()
+processTextUsingFiles tokens state = do
+ outh <- openFile (tokens!!5) WriteMode -- out file
+ content <- readFile (tokens!!4)        -- in  file
+
  let maxLengthPerLine = read (tokens!!1)::Int
-     separationFlag   = if (map toLower (tokens!!2)) == "s" then SEPARAR else NOSEPARAR
-     adjustmentFlag   = if (map toLower (tokens!!3)) == "s" then AJUSTAR else NOAJUSTAR
-     textToAlign      = readTextFromFile inh (tokens!!4)
+     separationFlag   = if (tokens!!2) == "s" then SEPARAR else NOSEPARAR
+     adjustmentFlag   = if (tokens!!3) == "s" then AJUSTAR else NOAJUSTAR
+     textToAlign      = lines content
  
- let splittedText     = separarYalinear maxLengthPerLine separationFlag adjustmentFlag textToAlign state
- saveTextToFile outh splittedText
- putStrLn $ show splittedText
- return ()
+ -- using THF for adjust every line in the file content
+ let alignedText      = separarYalinear maxLengthPerLine separationFlag adjustmentFlag (unwords textToAlign) state
+
+ putStrLn $ "\n"++(intercalate "\n" alignedText)++"\n"
+
+ if length tokens == 6 then do 
+  saveTextToFile outh alignedText -- write to file
+  hClose outh -- close the stream
+  return ()
+ else
+  return ()
