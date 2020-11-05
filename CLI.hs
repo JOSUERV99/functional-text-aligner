@@ -22,7 +22,7 @@ main = do
 mainloop :: State -> IO ()
 mainloop state = do
 
-  putStr "[TextAligner] ~> "
+  putStr "\n[TextAligner] ~> "
   inpStr <- getLine
   let tokens  = words inpStr
       command = tokens!!0
@@ -74,7 +74,7 @@ mainloop state = do
 
    _ -> do 
      putStrLn $ "Unknown command ("++ command ++"): '" ++ inpStr ++ "'" 
-     mainloop state 
+     mainloop state
 
 {-- record a new word-separation into the state --}
 record :: State -> String -> [String] -> State
@@ -125,10 +125,10 @@ processTextUsingFiles tokens state = do
  content <- readFile (tokens!!4)        -- in  file
 
  let maxLengthPerLine = read (tokens!!1)::Int
-     separationFlag   = if (tokens!!2) == "s" then SEPARAR else NOSEPARAR
-     adjustmentFlag   = if (tokens!!3) == "s" then AJUSTAR else NOAJUSTAR
+     separationFlag   = if ((tokens!!2) == "s") then SEPARAR else NOSEPARAR
+     adjustmentFlag   = if ((tokens!!3) == "s") then AJUSTAR else NOAJUSTAR
      textToAlign      = lines content
- 
+
  -- using THF for adjust every line in the file content
  let alignedText      = separarYalinear maxLengthPerLine separationFlag adjustmentFlag (unwords textToAlign) state
 
