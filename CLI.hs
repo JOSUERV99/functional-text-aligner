@@ -11,7 +11,7 @@ import Data.List (sort, intercalate)
 import Data.Typeable
 import System.IO
 
-type State = Map String [String]
+type State = HypMap
 
 {-- main door --}
 main :: IO ()
@@ -25,7 +25,7 @@ mainloop state = do
   putStr "\n[TextAligner] ~> "
   inpStr <- getLine
   let tokens  = words inpStr
-      command = tokens!!0
+      command = if (length tokens) > 0 then tokens!!0 else " "
   
   case command of
 
@@ -101,12 +101,17 @@ saveDict outh ((word,separations):wordSet) = do
  hPutStrLn outh $ word ++ " " ++ (intercalate "-" separations)
  saveDict outh wordSet
 
+{-- parse parameters for split and splitf functions --}
+registerParameters :: [String] -> (Int, SPFlag, ALFlag)
+registerParameters tokens = (maxLengthPerLine, separationFlag, adjustmentFlag)
+  where maxLengthPerLine = read (tokens!!1)::Int
+        separationFlag   = if (map toLower (tokens!!2)) == "s" then SEPARAR else NOSEPARAR
+        adjustmentFlag   = if (map toLower (tokens!!3)) == "s" then AJUSTAR else NOAJUSTAR
+
 {-- process text using THF --}
 processText :: [String] -> State -> String
 processText tokens state = do
- let maxLengthPerLine = read (tokens!!1)::Int
-     separationFlag   = if (map toLower (tokens!!2)) == "s" then SEPARAR else NOSEPARAR
-     adjustmentFlag   = if (map toLower (tokens!!3)) == "s" then AJUSTAR else NOAJUSTAR
+ let (maxLengthPerLine, separationFlag, adjustmentFlag) = registerParameters tokens
      textToAlign      = unwords $ drop 4 tokens
      alignedText      = intercalate "\n" $ separarYalinear maxLengthPerLine separationFlag adjustmentFlag textToAlign state
  alignedText
@@ -121,20 +126,18 @@ saveTextToFile outh (l:lines) = do
 {-- process text and save in a file --}
 processTextUsingFiles :: [String] -> State -> IO ()
 processTextUsingFiles tokens state = do
- outh <- openFile (tokens!!5) WriteMode -- out file
  content <- readFile (tokens!!4)        -- in  file
 
- let maxLengthPerLine = read (tokens!!1)::Int
-     separationFlag   = if ((tokens!!2) == "s") then SEPARAR else NOSEPARAR
-     adjustmentFlag   = if ((tokens!!3) == "s") then AJUSTAR else NOAJUSTAR
-     textToAlign      = lines content
+ let (maxLengthPerLine, separationFlag, adjustmentFlag) = registerParameters tokens
+     textToAlign = lines content
 
  -- using THF for adjust every line in the file content
- let alignedText      = separarYalinear maxLengthPerLine separationFlag adjustmentFlag (unwords textToAlign) state
+ let alignedText = separarYalinear maxLengthPerLine separationFlag adjustmentFlag (unwords textToAlign) state
 
  putStrLn $ "\n"++(intercalate "\n" alignedText)++"\n"
 
- if length tokens == 6 then do 
+ if length tokens >= 6 then do 
+  outh <- openFile (tokens!!5) WriteMode -- out file
   saveTextToFile outh alignedText -- write to file
   hClose outh -- close the stream
   return ()

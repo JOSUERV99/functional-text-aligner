@@ -14,6 +14,8 @@ data Token = Word String | Blank | HypWord String
 enHyp :: HypMap -- for testing...
 enHyp = Data.Map.fromList [ ("controla",["con","tro","la"]), ("futuro",["fu","tu","ro"]),("presente",["pre","sen","te"])]
 
+texto = "Aquel que controla el pasado controla el futuro. Aquel que controla el presente controla el pasado."
+
 {-- get string from token types --}
 get :: Token -> String
 get tkn = case tkn of
